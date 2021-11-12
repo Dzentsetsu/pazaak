@@ -1,0 +1,7 @@
+.EnemyRoundsWon {
+  background: black;
+  display: flex;
+  flex-direction: column;
+  justify-self: right;
+  align-items: flex-end;
+}

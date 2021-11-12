@@ -1,0 +1,17 @@
+.Card {
+  display: block;
+  width: fit-content;
+  max-width: var(--cardWidth);
+  max-height: var(--cardHeight);
+  position: relative;
+  justify-self: center;
+}
+
+.Card > p {
+  color: white;
+  position: absolute;
+  width: 100%;
+  top: 32px;
+  left: 0px;
+  text-align: center;
+}

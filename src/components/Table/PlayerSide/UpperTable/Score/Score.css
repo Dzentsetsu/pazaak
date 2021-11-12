@@ -1,0 +1,11 @@
+.Score {
+  color: white;
+  background: rgb(156, 149, 119);
+  align-self: center;
+  justify-self: right;
+  text-align: center;
+  line-height: 60px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+}

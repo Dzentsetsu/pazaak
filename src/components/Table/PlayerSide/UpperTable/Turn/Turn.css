@@ -1,0 +1,19 @@
+.TurnContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.Turn {
+  outline: 1px solid black;
+  background: rgb(224, 16, 68);
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+}
+.NotMyTurn {
+  outline: 1px solid black;
+  background: rgb(129, 121, 123);
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+}

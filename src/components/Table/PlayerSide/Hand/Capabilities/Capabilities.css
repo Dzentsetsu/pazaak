@@ -1,0 +1,17 @@
+.Capabilities {
+  display: grid;
+  grid-template-columns: 25% 25% 25% 25%;
+  justify-content: space-around;
+}
+
+.Capability {
+  text-align: center;
+  background: chocolate;
+  border: 1px solid black;
+}
+
+.Common {
+  text-align: center;
+  grid-column: 1 / 5;
+  grid-row: 2 / 3;
+}

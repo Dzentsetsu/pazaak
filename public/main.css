@@ -1,0 +1,25 @@
+/* @font-face {
+  font-family: "distant_galaxyregular";
+  src: url("DISTGRG_-webfont.eot?#iefix") format("embedded-opentype"),
+    url("DISTGRG_-webfont.woff") format("woff");
+  font-weight: normal;
+  font-style: normal;
+} */
+:root {
+  --cardHeight: 110px;
+  --cardWidth: 78px;
+}
+
+*,
+::after,
+::before {
+  /* font-family: "distant_galaxyregular", Courier, monospace; */
+  margin: 0px;
+  padding: 0px;
+  box-sizing: border-box;
+}
+
+body,
+#root {
+  height: 100vh;
+}

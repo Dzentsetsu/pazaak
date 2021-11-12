@@ -1,0 +1,20 @@
+.RoundsWon {
+  background: black;
+  display: flex;
+  flex-direction: column;
+}
+.CircleRed {
+  background: crimson;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  margin: 5px;
+}
+
+.CircleGrey {
+  background: rgb(95, 84, 86);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  margin: 5px;
+}
