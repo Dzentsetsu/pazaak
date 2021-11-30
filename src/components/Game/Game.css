@@ -4,4 +4,48 @@
   height: 100vh;
   justify-content: center;
   align-items: center;
+  flex-direction: column;
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+.ambientControlls {
+  width: 100px;
+  height: 50px;
+}
+
+.Table {
+  width: 70%;
+  aspect-ratio: 16 / 9;
+  outline: 1px solid black;
+  align-self: center;
+  justify-self: center;
+  background: #b8bec2;
+  display: grid;
+  grid-template-columns: 48% 48%;
+  column-gap: 4%;
+  min-width: 1000px;
+  min-height: 680px;
+  overflow: hidden;
+}
+
+.Darkened {
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  right: 0;
+  top: 0;
+  background-color: black;
+  opacity: 0.7;
+}
+
+.PlayerSide {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.EnemySide {
+  position: relative;
+  display: flex;
+  flex-direction: column;
 }

@@ -1,9 +1,12 @@
-import CardPlaceHolder from "../Table/PlayerSide/UpperTable/CardsOnTable/CardPlaceHolder/CardPlaceHolder";
-import "../Table/PlayerSide/UpperTable/CardsOnTable/CardPlaceHolder/CardPlaceHolder.css";
 import enemyCard from "../../assets/img/enemyCard.png";
+import React from "react";
 import "./EnemyDeck.css";
 
-function EnemyDeck() {
+function EnemyCard() {
+  return <img className="EnemyCard" src={enemyCard}></img>;
+}
+
+export default React.memo(function EnemyDeck() {
   return (
     <div className="EnemyDeck">
       <EnemyCard />
@@ -12,10 +15,4 @@ function EnemyDeck() {
       <EnemyCard />
     </div>
   );
-}
-
-export default EnemyDeck;
-
-function EnemyCard() {
-  return <img className="EnemyCard" src={enemyCard}></img>;
-}
+});

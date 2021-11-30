@@ -1,35 +1,56 @@
-import Table from "../Table/Table";
 import "./Game.css";
+import "./UpperTable.css";
+import "./PlayerButtons.css";
+import UpperTable from "./PlayerSide/UpperTable";
+import LowerTable from "./PlayerSide/PlayerHand/LowerTable";
 
-import { useEffect, useState } from "react";
-import { useHistory } from "react-router";
-import EnemyRoundsWon from "../Table/EnemySide/EnemyRoundsWon/EnemyRoundsWon";
-import Dealer from "../AI/Dealer/Dealer";
-import EnemyScore from "../Table/EnemySide/EnemyScore/EnemyScore";
-import EnemyAI, { Desicion } from "../AI/EnemyAI/EnemyAI";
+import EnemyUpperTable from "./EnemySide/EnemyUpperTable";
+import "./EnemyLowerTable.css";
+import EnemyWhosHand from "./EnemyWhosHand";
+import EnemyDeck from "../EnemyDeck/EnemyDeck";
 
-export type Enemy = {
-  enemyHand: Array<number>;
-  enemyScore: number;
-  enemyTurn: boolean;
-  enemyRoundsWon: number;
-  enemyCardsOnTable: any;
-  computerStanded: boolean;
-};
-
-export type Player = {
-  playerHand: Array<number>;
-  playerScore: number;
-  playerTurn: boolean;
-  playerRoundsWon: number;
-  playerCardsOnTable: any;
-  playerStanded: boolean;
-};
+import { useEffect, useState, useCallback, useRef, useReducer } from "react";
+import Dealer from "../../helpers/dealer";
+import EnemyAI, { Desicion } from "../../helpers/enemyAI";
+import EventSystem from "../../helpers/eventdispatcher";
 
 export type Triggers = {
   endTurnTrigger: () => void;
   standTrigger: () => void;
   forfeitGameTrigger: () => void;
+};
+
+interface GameState {
+  global: {
+    deck: Array<string>;
+  };
+  player: {
+    hand: Array<number>;
+    turn: boolean;
+    score: number;
+    roundsWon: number;
+    cardsonTable: Array<number>;
+    move: boolean;
+    standed: boolean;
+  };
+  ai: {
+    hand: Array<number>;
+    turn: boolean;
+    score: number;
+    roundsWon: number;
+    cardsOnTable: Array<number>;
+    standed: boolean;
+  };
+}
+
+let initialState: GameState;
+
+const GameSetLogic = {
+  roundStartedDelay: false,
+  playerPressedStand: false,
+  enemyPressedStand: false,
+  playerShouldGetCard: true,
+  whoWonRound: "No one",
 };
 
 let roundStartedDelay = false;
@@ -38,9 +59,14 @@ let enemyPressedStand = false;
 let playerShouldGetCard = true;
 let whoWonRound = "No one";
 
-function Game() {
-  let winner: string;
+// const reducer = (state, action) {
+// return (prev)=>{...prev, roundStartedDelay: true}
+// }
 
+function Game() {
+  // const [state, dispatch] = useReducer(reducer, initialState);
+
+  const selfRef = useRef<HTMLDivElement>(null);
   const [roundInit, setRoundInit] = useState(false);
   const [evalEnemyStats, setEvalEnemyStats] = useState(false);
   const [evalPlayerStats, setEvalPlayerStats] = useState(false);
@@ -63,24 +89,6 @@ function Game() {
 
   const deck = ["1", "2", "3", "4", "5", "6", "1", "2", "3", "4", "5", "6"];
   const globalDeck = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-
-  const player: Player = {
-    playerHand: playerHand,
-    playerScore: playerScore,
-    playerTurn: playerTurn,
-    playerRoundsWon: playerRoundsWon,
-    playerCardsOnTable: playerCardsOnTable,
-    playerStanded: playerStaneded,
-  };
-
-  const enemy: Enemy = {
-    enemyHand: enemyHand,
-    enemyScore: enemyScore,
-    enemyTurn: enemyTurn,
-    enemyRoundsWon: enemyRoundsWon,
-    enemyCardsOnTable: enemyCardsOnTable,
-    computerStanded: computerStanded,
-  };
 
   const controlls: Triggers = {
     endTurnTrigger: () => {
@@ -124,10 +132,18 @@ function Game() {
   useEffect(() => {
     if (roundStartedDelay) {
       // debugger;
-      if (
-        (playerPressedStand && enemyPressedStand) ||
-        (playerPressedStand && enemyPressedStand == false)
-      ) {
+      if ((playerPressedStand && enemyPressedStand) || (playerPressedStand && enemyPressedStand == false)) {
+        if (playerScore >= 21) {
+          setEnemyRoundsWon((prev) => prev + 1);
+          whoWonRound = "Enemy";
+          return;
+        }
+        if (enemyScore >= 21) {
+          setPlayerRoundsWon((prev) => prev + 1);
+          whoWonRound = "Player";
+          return;
+        }
+
         if (playerScore === enemyScore) {
           console.log("TIE");
           // debugger;
@@ -149,7 +165,8 @@ function Game() {
         setEnemyRoundsWon((prev) => prev + 1);
         gameOver("Enemy");
       } else {
-        alert(`${whoWonRound} - won this round!`);
+        EventSystem.dispatchCustomEvent(selfRef.current!);
+        // alert(`${whoWonRound} - won this round!`);
         setRoundInit((prev) => !prev);
         console.log("continue battle");
       }
@@ -161,18 +178,10 @@ function Game() {
     if (enemyPressedStand && playerPressedStand) {
       setRoundWinner((prev) => !prev);
       return;
-    } else if (
-      enemyPressedStand &&
-      playerPressedStand == false &&
-      playerShouldGetCard
-    ) {
+    } else if (enemyPressedStand && playerPressedStand == false && playerShouldGetCard) {
       dealCardWhenComputerStanded();
       playerShouldGetCard = false;
-    } else if (
-      enemyPressedStand &&
-      playerPressedStand == false &&
-      playerShouldGetCard == false
-    ) {
+    } else if (enemyPressedStand && playerPressedStand == false && playerShouldGetCard == false) {
       console.log("do nothing");
       // debugger;
     }
@@ -181,6 +190,35 @@ function Game() {
     }
     roundStartedDelay = true;
   }, [playerMove]);
+
+  useEffect(() => {
+    if (enemyPressedStand && playerPressedStand) {
+      setRoundWinner((prev) => !prev);
+      return;
+    }
+
+    if (playerScore === 20) {
+      playerPressedStand = true;
+      controlls.standTrigger();
+    } else if (playerScore >= 21) {
+      if (enemyRoundsWon == 2) {
+        setEnemyRoundsWon((prev) => prev + 1);
+        gameOver("Enemy");
+      } else {
+        setEnemyRoundsWon((prev) => prev + 1);
+        alert("Enemy won this round!");
+        // debugger;
+        setRoundInit((prev) => !prev);
+        return;
+      }
+    } else {
+      // nothing happened yet
+    }
+
+    if (enemyPressedStand && playerShouldGetCard) {
+      setPlayerMove(true);
+    }
+  }, [evalPlayerStats]);
 
   useEffect(() => {
     if (playerPressedStand && enemyPressedStand) {
@@ -254,36 +292,7 @@ function Game() {
     }
   }, [evalEnemyStats]);
 
-  useEffect(() => {
-    if (enemyPressedStand && playerPressedStand) {
-      setRoundWinner((prev) => !prev);
-      return;
-    }
-
-    if (playerScore === 20) {
-      playerPressedStand = true;
-      controlls.standTrigger();
-    } else if (playerScore >= 21) {
-      if (enemyRoundsWon == 2) {
-        setEnemyRoundsWon((prev) => prev + 1);
-        gameOver("Enemy");
-      } else {
-        setEnemyRoundsWon((prev) => prev + 1);
-        alert("Enemy won this round!");
-        // debugger;
-        setRoundInit((prev) => !prev);
-        return;
-      }
-    } else {
-      // nothing happened yet
-    }
-
-    if (enemyPressedStand && playerShouldGetCard) {
-      setPlayerMove(true);
-    }
-  }, [evalPlayerStats]);
-
-  function computerMove() {
+  const computerMove = useCallback(() => {
     setEnemyTurn(true);
     if (playerPressedStand) {
       whatToDoWhenPlayerStanded(1300);
@@ -292,17 +301,17 @@ function Game() {
     if (playerPressedStand == false) {
       dealCardToEnemy(1300);
     }
-  }
+  }, []);
 
-  function gameOver(whoWon: string = "") {
+  const gameOver = useCallback((whoWon: string = "") => {
     setEnemyTurn(false);
     setPlayerTurn(false);
     // window.confirm(`Game over. Winner - ${whoWon}. Press OK to reload`) &&
     //   document.location.reload();
     alert(`Game over. Winner - ${whoWon}`);
-  }
+  }, []);
 
-  function clearState() {
+  const clearState = useCallback(() => {
     roundStartedDelay = false;
     playerPressedStand = false;
     enemyPressedStand = false;
@@ -320,11 +329,9 @@ function Game() {
     setPlayerTurn(true);
     setPlayerStanded(false);
     setComputerStanded(false);
-  }
-  function randomCardFromGlobalDeck() {
-    return globalDeck[Math.ceil(Math.random() * globalDeck.length - 1)];
-  }
-  function dealCardToPlayer(timeout: number = 1300) {
+  }, []);
+
+  const dealCardToPlayer = useCallback((timeout: number = 1300) => {
     let number = Dealer.playCard();
     setTimeout(() => {
       setPlayerCardsOnTable((oldState) => [...oldState, number]);
@@ -335,18 +342,18 @@ function Game() {
         setEvalPlayerStats((prev) => !prev);
       }, 30);
     }, timeout);
-  }
+  }, []);
 
-  function dealCardWhenComputerStanded() {
+  const dealCardWhenComputerStanded = useCallback(() => {
     let number = Dealer.playCard();
     setTimeout(() => {
       setPlayerCardsOnTable((oldState) => [...oldState, number]);
       setPlayerScore((prevScore) => prevScore + number);
       setEvalPlayerStats((prev) => !prev);
     }, 1300);
-  }
+  }, []);
 
-  function whatToDoWhenPlayerStanded(timeout: number = 1300) {
+  const whatToDoWhenPlayerStanded = useCallback((timeout: number = 1300) => {
     let number = Dealer.playCard();
     setTimeout(() => {
       setEnemyCardsOnTable((oldState) => [...oldState, number]);
@@ -354,7 +361,7 @@ function Game() {
 
       setEvalEnemyStats((prev) => !prev);
     }, timeout);
-  }
+  }, []);
 
   function dealCardToEnemy(timeout: number = 1300) {
     setEnemyTurn(true);
@@ -366,10 +373,39 @@ function Game() {
       setEvalEnemyStats((prev) => !prev);
     }, timeout);
   }
+
+  function randomCardFromGlobalDeck() {
+    return globalDeck[Math.ceil(Math.random() * globalDeck.length - 1)];
+  }
   return (
-    <div className="Game">
-      <Table player={player} enemy={enemy} controlls={controlls} />
+    <div className="Game" onClick={() => console.log("You clicked something")} ref={selfRef}>
+      <div className="Table">
+        <div className="PlayerSide">
+          <UpperTable playerScore={playerScore} playerTurn={playerTurn} playerRoundsWon={playerRoundsWon} playerCardsOnTable={playerCardsOnTable} />
+          <LowerTable playerHand={playerHand} />
+          {playerStaneded && <div className="Darkened">&nbsp;</div>}
+        </div>
+        <div className="EnemySide">
+          <EnemyUpperTable enemyScore={enemyScore} enemyTurn={enemyTurn} enemyRoundsWon={enemyRoundsWon} enemyCardsOnTable={enemyCardsOnTable} computerStanded={computerStanded} />
+          <div className="EnemyLowerTable">
+            <EnemyWhosHand />
+            <EnemyDeck />
+            <div className="PlayerButtons">
+              <button className="EndTurn" onClick={controlls.endTurnTrigger}>
+                END Turn
+              </button>
+              <button className="Stand" onClick={controlls.standTrigger}>
+                Stand
+              </button>
+              <button className="Forfeit" onClick={controlls.forfeitGameTrigger}>
+                Forfeit Game
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
+
 export default Game;

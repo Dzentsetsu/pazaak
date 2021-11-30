@@ -1,0 +1,111 @@
+/* TODO: 1. Make another background
+         2. Make input animation
+         3. Change button css
+         4. make it mobile friendly 
+         5. Wrong Name Error
+         */
+
+.Home {
+  position: relative;
+  height: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.About {
+  cursor: pointer;
+  filter: opacity(25%);
+  filter: grayscale(70%);
+}
+
+.About:hover {
+  filter: opacity(100%);
+  filter: drop-shadow(16px 16px 20px red);
+}
+
+.animation {
+  animation: closingAnimation 1.2s;
+}
+
+form {
+  height: 5vh;
+  width: 25vw;
+}
+input {
+  color: #fff;
+  background-color: #444;
+  padding-left: 10px;
+  width: 75%;
+  height: 100%;
+  font-size: 1.4rem;
+  border-radius: 5px;
+  outline: none;
+  border: none;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+::placeholder {
+  color: #8c8c8c;
+  font-size: 1em;
+}
+
+.button {
+  /* border: none; */
+  border-radius: 5px;
+  font-size: 1.4rem;
+  height: inherit;
+  width: 25%;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+  line-height: 100px;
+  font-size: 2rem;
+  margin-bottom: 2px;
+  height: 100px;
+  width: 400px;
+  color: #2ff3bf;
+  border-radius: 10px;
+  background-color: #09241d;
+  opacity: 0.8;
+  border: 2px solid #34c2a2;
+}
+.button:hover {
+  color: whitesmoke;
+  border-radius: 10px;
+  border: 2px solid whitesmoke;
+}
+
+.neonText {
+  color: #fff;
+  text-shadow: 0 0 7px #fff, 0 0 10px #fff, 0 0 21px #fff, 0 0 42px #0fa, 0 0 82px #0fa, 0 0 92px #0fa, 0 0 102px #0fa, 0 0 151px #0fa;
+}
+
+h1 {
+  font-size: 5rem;
+  /* animation: flicker 1.5s infinite alternate; */
+}
+
+@keyframes flicker {
+  0%,
+  18%,
+  22%,
+  25%,
+  53%,
+  57%,
+  100% {
+    text-shadow: 0 0 4px #fff, 0 0 11px #fff, 0 0 19px #fff, 0 0 40px #0fa, 0 0 80px #0fa, 0 0 90px #0fa, 0 0 100px #0fa, 0 0 150px #0fa;
+  }
+  20%,
+  24%,
+  55% {
+    text-shadow: none;
+  }
+}
+
+@keyframes closingAnimation {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
