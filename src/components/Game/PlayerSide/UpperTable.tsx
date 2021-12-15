@@ -4,17 +4,25 @@ import NamePlate from "./UpperTable/NamePlate/NamePlate";
 import Score from "./UpperTable/Score/Score";
 import RoundsWon from "./UpperTable/RoundsWon/RoundsWon";
 import CardsOnTable from "./UpperTable/CardsOnTable/CardsOnTable";
-import React from "react";
 
-export default React.memo(function UpperTable(props: any) {
-  // console.log("UpperTable rerenders");
+export default function UpperTable({
+  score,
+  turn,
+  roundsWon,
+  cardsOnTable,
+}: {
+  score: number;
+  turn: boolean;
+  roundsWon: number;
+  cardsOnTable: Array<number>;
+}) {
   return (
     <div className="UpperTable">
-      <Turn playerTurn={props.playerTurn} />
+      <Turn playerTurn={turn} />
       <NamePlate />
-      <Score playerScore={props.playerScore} />
-      <RoundsWon playerRoundsWon={props.playerRoundsWon} />
-      <CardsOnTable playerCardsOnTable={props.playerCardsOnTable} />
+      <Score playerScore={score} />
+      <RoundsWon playerRoundsWon={roundsWon} />
+      <CardsOnTable playerCardsOnTable={cardsOnTable} />
     </div>
   );
-});
+}

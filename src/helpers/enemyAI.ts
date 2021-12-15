@@ -5,7 +5,11 @@ export enum Desicion {
 }
 
 const EnemyAI = {
-  makeDecisionWhenPlayerStanded: (playerScore: number, computerScore: number, computerHand: number[]) => {
+  makeDecisionWhenPlayerStanded: (
+    playerScore: number,
+    computerScore: number,
+    computerHand: number[]
+  ) => {
     if (playerScore === 20) {
     } else if (playerScore < 20 && playerScore >= 17) {
     } else if (playerScore < 17 && playerScore >= 13) {
@@ -13,9 +17,33 @@ const EnemyAI = {
     } else {
     }
   },
-  modeEasy: (playerScore: number, computerScore: number) => {
-    if (playerScore <= 10 && playerScore >= computerScore) return Desicion.DEAL;
-    return playerScore < computerScore ? Desicion.STAND : playerScore === computerScore ? Desicion.STAND : playerScore > computerScore ? Desicion.DEAL : Desicion.DEAL;
+  modeEasy: (playerScore: number, computerScore: number, playerStanded: boolean) => {
+    if (playerStanded) {
+      if (playerScore <= 10) {
+        return computerScore > playerScore ? Desicion.STAND : Desicion.DEAL;
+      }
+      if (playerScore >= 11 && playerScore <= 13) {
+        return playerScore < computerScore ? Desicion.STAND : Desicion.DEAL;
+      }
+      if (playerScore >= 14 && playerScore < 19) {
+        return playerScore > computerScore ? Desicion.DEAL : Desicion.STAND;
+      }
+      if (playerScore === 19 || playerScore === 20) {
+        return playerScore <= computerScore ? Desicion.STAND : Desicion.DEAL;
+      }
+    }
+    if (!playerStanded) {
+      if (computerScore <= 13) {
+        return Desicion.DEAL;
+      }
+      if (computerScore >= 14 && computerScore < 19) {
+        return playerScore > computerScore ? Desicion.DEAL : Desicion.STAND;
+      }
+      if (computerScore === 19 || computerScore === 20) {
+        return computerScore >= playerScore ? Desicion.STAND : Desicion.DEAL;
+      }
+    }
+    return Desicion.STAND;
   },
   playerHas20: (computerScore: number, computerHand: number[]): number => {
     if (computerScore <= 10) {
@@ -70,10 +98,14 @@ const EnemyAI = {
       const has2 = computerHand.indexOf(2);
       const has1 = computerHand.indexOf(1);
 
-      if (playerScore === 19 && computerScore === 19) return has1 !== -1 ? Desicion.PLAYCARD : Desicion.STAND;
-      if (playerScore === 19 && computerScore === 18) return has2 !== -1 || has1 !== -1 ? Desicion.PLAYCARD : Desicion.DEAL;
-      if (playerScore === 19 && computerScore === 17) return has3 !== -1 ? Desicion.PLAYCARD : Desicion.DEAL;
-      if (playerScore === 18 && computerScore === 17) return has3 !== -1 || has2 !== -1 ? Desicion.PLAYCARD : Desicion.DEAL;
+      if (playerScore === 19 && computerScore === 19)
+        return has1 !== -1 ? Desicion.PLAYCARD : Desicion.STAND;
+      if (playerScore === 19 && computerScore === 18)
+        return has2 !== -1 || has1 !== -1 ? Desicion.PLAYCARD : Desicion.DEAL;
+      if (playerScore === 19 && computerScore === 17)
+        return has3 !== -1 ? Desicion.PLAYCARD : Desicion.DEAL;
+      if (playerScore === 18 && computerScore === 17)
+        return has3 !== -1 || has2 !== -1 ? Desicion.PLAYCARD : Desicion.DEAL;
       if (playerScore === 17 && computerScore >= 18) return Desicion.STAND;
     } else {
       return Desicion.DEAL;

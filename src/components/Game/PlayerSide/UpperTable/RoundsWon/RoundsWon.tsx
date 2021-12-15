@@ -1,14 +1,10 @@
 import "./RoundsWon.css";
 import React from "react";
 
-export default React.memo(function RoundsWon({
-  playerRoundsWon,
-}: {
-  playerRoundsWon: number;
-}) {
+export default React.memo(function RoundsWon({ playerRoundsWon }: { playerRoundsWon: number }) {
   return (
     <div className="RoundsWon">
-      {playerRoundsWon >= +1 ? (
+      {playerRoundsWon >= 1 ? (
         <div className="CircleRed"></div>
       ) : (
         <div className="CircleGrey"></div>

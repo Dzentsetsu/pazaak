@@ -9,29 +9,37 @@ import "./EnemyLowerTable.css";
 import EnemyWhosHand from "./EnemyWhosHand";
 import EnemyDeck from "../EnemyDeck/EnemyDeck";
 
-import { useEffect, useState, useCallback, useRef, useReducer } from "react";
+import { useEffect, useRef, useReducer, SyntheticEvent, useState } from "react";
 import Dealer from "../../helpers/dealer";
 import EnemyAI, { Desicion } from "../../helpers/enemyAI";
-import EventSystem from "../../helpers/eventdispatcher";
+import Modal from "../Modal/Modal";
+import MusicPlayer from "../MusicPlayer/MusicPlayer";
 
-export type Triggers = {
+const UI_UPDATE_TIMEOUT = 400;
+
+type Triggers = {
   endTurnTrigger: () => void;
   standTrigger: () => void;
   forfeitGameTrigger: () => void;
 };
 
-interface GameState {
+export interface GameState {
   global: {
+    initNewRound: boolean;
+    doNotExeptUserInput: boolean;
+    passTurnToPlayer: boolean;
+    toogleAIturn: boolean;
     deck: Array<string>;
+    winner: String;
   };
   player: {
     hand: Array<number>;
     turn: boolean;
     score: number;
     roundsWon: number;
-    cardsonTable: Array<number>;
-    move: boolean;
+    cardsOnTable: Array<number>;
     standed: boolean;
+    handUsed: boolean;
   };
   ai: {
     hand: Array<number>;
@@ -40,370 +48,349 @@ interface GameState {
     roundsWon: number;
     cardsOnTable: Array<number>;
     standed: boolean;
+    handUsed: boolean;
+  };
+  modal: {
+    isOpen: boolean;
+    message: String;
   };
 }
 
-let initialState: GameState;
+export enum ACTION {
+  EVAL,
+  INIT_GAME,
+  INIT_ROUND,
+  AI_TURN,
+  AI_MOVE,
+  PLAYER_TURN,
+  PLAYER_MOVE,
+  ROUND_WINNER,
+  PLAYER_STAND,
+  AI_STAND,
+  GAME_WINNER,
+  PLAY_CARD_FROM_HAND,
+  DISABLE_INPUT,
+  PLAYER_WON_ROUND,
+  AI_WON_ROUND,
+  PLAYRE_WON_GAME,
+  AI_WON_GAME,
+  CLOSE_MODAL,
+  TIE,
+  TOOGLE_AI,
+  CONTINUE,
+}
 
-const GameSetLogic = {
-  roundStartedDelay: false,
-  playerPressedStand: false,
-  enemyPressedStand: false,
-  playerShouldGetCard: true,
-  whoWonRound: "No one",
+const initialState: GameState = {
+  global: {
+    initNewRound: false,
+    doNotExeptUserInput: false,
+    passTurnToPlayer: false,
+    toogleAIturn: false,
+    deck: ["1", "2", "3", "4", "5", "6", "1", "2", "3", "4", "5", "6"],
+    winner: "",
+  },
+  player: {
+    hand: [],
+    turn: false,
+    score: 0,
+    roundsWon: 0,
+    cardsOnTable: [],
+    standed: false,
+    handUsed: false,
+  },
+  ai: {
+    hand: [],
+    turn: false,
+    score: 0,
+    roundsWon: 0,
+    cardsOnTable: [],
+    standed: false,
+    handUsed: false,
+  },
+  modal: {
+    isOpen: false,
+    message: "Вы выйграли сет",
+  },
 };
 
-let roundStartedDelay = false;
-let playerPressedStand = false;
-let enemyPressedStand = false;
-let playerShouldGetCard = true;
-let whoWonRound = "No one";
+const reducer = (state: GameState, action: any) => {
+  switch (action.type) {
+    // @ts-ignore
+    case ACTION.INIT_GAME: {
+      // start background music
+      state.ai.roundsWon = 0;
+      state.player.roundsWon = 0;
+    }
+    case ACTION.INIT_ROUND: {
+      // clear state excluding roundsWON on both sides
+      let tempPlayerRoundsWon = state.player.roundsWon;
+      let tempAIRoundsWon = state.ai.roundsWon;
 
-// const reducer = (state, action) {
-// return (prev)=>{...prev, roundStartedDelay: true}
-// }
+      state = JSON.parse(JSON.stringify(initialState));
+
+      state.player.roundsWon = tempPlayerRoundsWon;
+      state.ai.roundsWon = tempAIRoundsWon;
+
+      state.player.hand = Dealer.generateDeck(state.global.deck).splice(0, 4);
+      state.ai.hand = Dealer.generateDeck(state.global.deck).splice(0, 4);
+      Dealer.dealCard(state.player);
+      state.player.turn = true;
+
+      break;
+    }
+    case ACTION.AI_TURN: {
+      // state.global.doNotExeptUserInput = true;
+      state.player.turn = false;
+      state.ai.turn = true;
+      state.global.toogleAIturn = !state.global.toogleAIturn;
+      return { ...state };
+    }
+    case ACTION.AI_MOVE: {
+      if (!state.ai.standed) {
+        Dealer.dealCard(state.ai);
+
+        let ai_decision = EnemyAI.modeEasy(
+          state.player.score,
+          state.ai.score,
+          state.player.standed
+        );
+
+        if (ai_decision === Desicion.STAND) {
+          console.log("AI STANDED");
+          state.ai.standed = true;
+          state.ai.turn = false;
+          if (!state.player.standed) {
+            state.global.passTurnToPlayer = true;
+            state.global.doNotExeptUserInput = false;
+            state.player.handUsed = false;
+            state.player.turn = true;
+          }
+          return { ...state };
+        }
+
+        if (!state.player.standed) {
+          state.global.passTurnToPlayer = true;
+          state.global.doNotExeptUserInput = false;
+          state.player.handUsed = false;
+          state.player.turn = true;
+        }
+      }
+      return { ...state };
+    }
+    case ACTION.TOOGLE_AI: {
+      state.global.toogleAIturn = !state.global.toogleAIturn;
+      break;
+    }
+    case ACTION.PLAYER_TURN: {
+      state.global.passTurnToPlayer = false;
+      state.ai.turn = false;
+      state.player.turn = true;
+      Dealer.dealCard(state.player);
+
+      break;
+    }
+    case ACTION.PLAYER_STAND: {
+      state.player.standed = true;
+      state.global.doNotExeptUserInput = true;
+      state.player.turn = false;
+      state.ai.turn = true;
+      if (!state.ai.standed) {
+        state.global.toogleAIturn = !state.global.toogleAIturn;
+      }
+      break;
+    }
+    case ACTION.AI_STAND: {
+      state.ai.standed = true;
+      state.ai.turn = false;
+      break;
+    }
+    case ACTION.PLAY_CARD_FROM_HAND: {
+      if (!state.player.handUsed) {
+        Dealer.putCardOnTableFromHand(state.player, action.payload);
+        state.player.handUsed = true;
+      }
+      break;
+    }
+    case ACTION.DISABLE_INPUT: {
+      // state.global.doNotExeptUserInput = true;
+      return { ...state };
+    }
+    case ACTION.CLOSE_MODAL: {
+      // if (
+      //   state.modal.message === "Вы выйграли раунд" ||
+      //   state.modal.message === "Вы проиграли раунд"
+      // ) {
+      state.global.initNewRound = true;
+      state.modal.isOpen = false;
+      // }
+      break;
+    }
+    case ACTION.PLAYER_WON_ROUND: {
+      state.player.roundsWon += 1;
+      state.modal.isOpen = true;
+      state.modal.message = "Вы выйграли раунд";
+      break;
+    }
+    case ACTION.AI_WON_ROUND: {
+      state.ai.roundsWon += 1;
+      state.modal.isOpen = true;
+      state.modal.message = "Вы проиграли раунд";
+      break;
+    }
+
+    case ACTION.PLAYRE_WON_GAME: {
+      state.player.roundsWon += 1;
+      state.modal.isOpen = true;
+
+      state.modal.message = "Вы выйграли!";
+      break;
+    }
+    case ACTION.AI_WON_GAME: {
+      state.ai.roundsWon += 1;
+      state.modal.isOpen = true;
+      state.modal.message = "Вы проиграли";
+      break;
+    }
+    case ACTION.TIE: {
+      state.modal.isOpen = true;
+      state.modal.message = "НИЧЬЯ";
+      break;
+    }
+    case ACTION.CONTINUE: {
+      return { ...state };
+    }
+    default:
+      console.log("You should not see this");
+      return { ...state };
+  }
+
+  return { ...state };
+};
 
 function Game() {
-  // const [state, dispatch] = useReducer(reducer, initialState);
-
   const selfRef = useRef<HTMLDivElement>(null);
-  const [roundInit, setRoundInit] = useState(false);
-  const [evalEnemyStats, setEvalEnemyStats] = useState(false);
-  const [evalPlayerStats, setEvalPlayerStats] = useState(false);
-  const [roundWinner, setRoundWinner] = useState(false);
+  const [state, dispatch] = useReducer(reducer, JSON.parse(JSON.stringify(initialState)));
 
-  const [playerHand, setPlayerHand] = useState([0, 0, 0, 0]);
-  const [playerTurn, setPlayerTurn] = useState(false);
-  const [playerScore, setPlayerScore] = useState(0);
-  const [playerRoundsWon, setPlayerRoundsWon] = useState(0);
-  const [playerCardsOnTable, setPlayerCardsOnTable] = useState<any[]>([]);
-  const [playerMove, setPlayerMove] = useState(false);
-  const [playerStaneded, setPlayerStanded] = useState(false);
-
-  const [enemyScore, setEnemyScore] = useState(0);
-  const [enemyHand, setEnemyHand] = useState([0, 0, 0, 0]);
-  const [enemyTurn, setEnemyTurn] = useState(false);
-  const [enemyRoundsWon, setEnemyRoundsWon] = useState(0);
-  const [enemyCardsOnTable, setEnemyCardsOnTable] = useState<any[]>([]);
-  const [computerStanded, setComputerStanded] = useState(false);
-
-  const deck = ["1", "2", "3", "4", "5", "6", "1", "2", "3", "4", "5", "6"];
-  const globalDeck = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  // const deck = ["1", "2", "3", "4", "5", "6", "1", "2", "3", "4", "5", "6"];
+  // const globalDeck = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
   const controlls: Triggers = {
     endTurnTrigger: () => {
-      if (enemyPressedStand && playerShouldGetCard == false) {
-        playerShouldGetCard = true;
-        setPlayerMove((prev) => !prev);
-      } else {
-        setPlayerTurn(false);
-        setEnemyTurn(true);
-        computerMove();
+      if (!state.ai.standed) dispatch({ type: ACTION.AI_TURN });
+
+      if (state.ai.standed && !state.player.standed) {
+        dispatch({ type: ACTION.PLAYER_TURN });
       }
     },
     standTrigger: () => {
-      playerPressedStand = true;
-      setPlayerStanded(true);
-      playerShouldGetCard = false;
-      setPlayerMove(false);
-      setPlayerTurn(false);
-
-      if (enemyPressedStand == false) {
-        computerMove();
-      }
-      if (enemyPressedStand) {
-        playerShouldGetCard = false;
-        // debugger;
-        setRoundWinner((prev) => !prev);
-      }
+      dispatch({ type: ACTION.PLAYER_STAND });
     },
     forfeitGameTrigger: () => {
       document.location.reload();
     },
   };
 
+  // ЗАмена старых юзеффектов на новый с применением диспатча
   useEffect(() => {
-    clearState();
-    setPlayerHand(Dealer.generateDeck(deck));
-    playerShouldGetCard = true;
-    setPlayerMove(true);
-  }, [roundInit]);
-
-  useEffect(() => {
-    if (roundStartedDelay) {
-      // debugger;
-      if ((playerPressedStand && enemyPressedStand) || (playerPressedStand && enemyPressedStand == false)) {
-        if (playerScore >= 21) {
-          setEnemyRoundsWon((prev) => prev + 1);
-          whoWonRound = "Enemy";
-          return;
-        }
-        if (enemyScore >= 21) {
-          setPlayerRoundsWon((prev) => prev + 1);
-          whoWonRound = "Player";
-          return;
-        }
-
-        if (playerScore === enemyScore) {
-          console.log("TIE");
-          // debugger;
-        } else if (playerScore < enemyScore) {
-          setEnemyRoundsWon((prev) => prev + 1);
-          whoWonRound = "Enemy";
-          // debugger;
-        } else if (playerScore > enemyScore) {
-          setPlayerRoundsWon((prev) => prev + 1);
-          whoWonRound = "Player";
-          // debugger;
-        }
-      }
-
-      if (playerRoundsWon == 2 && whoWonRound == "Player") {
-        setPlayerRoundsWon((prev) => prev + 1);
-        gameOver("Player");
-      } else if (enemyRoundsWon == 2 && whoWonRound == "Enemy") {
-        setEnemyRoundsWon((prev) => prev + 1);
-        gameOver("Enemy");
-      } else {
-        EventSystem.dispatchCustomEvent(selfRef.current!);
-        // alert(`${whoWonRound} - won this round!`);
-        setRoundInit((prev) => !prev);
-        console.log("continue battle");
-      }
-    }
-  }, [roundWinner]);
-
-  useEffect(() => {
-    setPlayerTurn(true);
-    if (enemyPressedStand && playerPressedStand) {
-      setRoundWinner((prev) => !prev);
-      return;
-    } else if (enemyPressedStand && playerPressedStand == false && playerShouldGetCard) {
-      dealCardWhenComputerStanded();
-      playerShouldGetCard = false;
-    } else if (enemyPressedStand && playerPressedStand == false && playerShouldGetCard == false) {
-      console.log("do nothing");
-      // debugger;
-    }
-    if (playerMove && playerShouldGetCard) {
-      dealCardToPlayer(1300);
-    }
-    roundStartedDelay = true;
-  }, [playerMove]);
-
-  useEffect(() => {
-    if (enemyPressedStand && playerPressedStand) {
-      setRoundWinner((prev) => !prev);
-      return;
-    }
-
-    if (playerScore === 20) {
-      playerPressedStand = true;
-      controlls.standTrigger();
-    } else if (playerScore >= 21) {
-      if (enemyRoundsWon == 2) {
-        setEnemyRoundsWon((prev) => prev + 1);
-        gameOver("Enemy");
-      } else {
-        setEnemyRoundsWon((prev) => prev + 1);
-        alert("Enemy won this round!");
-        // debugger;
-        setRoundInit((prev) => !prev);
-        return;
-      }
-    } else {
-      // nothing happened yet
-    }
-
-    if (enemyPressedStand && playerShouldGetCard) {
-      setPlayerMove(true);
-    }
-  }, [evalPlayerStats]);
-
-  useEffect(() => {
-    if (playerPressedStand && enemyPressedStand) {
-      setRoundWinner((prev) => !prev);
-      return;
-    }
-    if (playerPressedStand && enemyScore >= 21) {
-      if (playerRoundsWon == 2) {
-        setPlayerRoundsWon((prev) => prev + 1);
-        gameOver("Player");
-        return;
-      }
-      setPlayerRoundsWon((prev) => prev + 1);
-      alert("Player won this round");
-      setRoundInit((prev) => !prev);
-      return;
-    }
-    if (playerPressedStand) {
-      setPlayerTurn(false);
-
-      // debugger;
-      switch (EnemyAI.modeEasy(playerScore, enemyScore)) {
-        case Desicion.DEAL:
-          {
-            // debugger;
-            computerMove();
-          }
-          break;
-        case Desicion.STAND:
-          {
-            enemyPressedStand = true;
-            setComputerStanded(true);
-            // debugger;
-            setRoundWinner((prev) => !prev);
-          }
-          break;
-        default: {
-          // debugger;
-        }
-      }
-    }
-
-    if (enemyScore <= 20 && enemyScore >= 18) {
-      enemyPressedStand = true;
-      setComputerStanded(true);
-      setEnemyTurn(false);
-
-      if (playerPressedStand == false) {
-        setPlayerMove((prev) => !prev);
-      }
-      // if playerStanded before
-    } else if (enemyScore >= 21) {
-      if (playerRoundsWon == 2) {
-        setPlayerRoundsWon((prev) => prev + 1);
-        gameOver("Player");
-      } else {
-        setPlayerRoundsWon((prev) => prev + 1);
-        alert("Player won this round!");
-        // debugger;
-        setRoundInit((prev) => !prev);
-      }
-      return;
-      // lost round / game
-    } else {
-      if (playerPressedStand == false) {
-        setPlayerTurn(true);
-        setEnemyTurn(false);
-        setPlayerMove(true);
-      }
-      // nothing happened yet
-    }
-  }, [evalEnemyStats]);
-
-  const computerMove = useCallback(() => {
-    setEnemyTurn(true);
-    if (playerPressedStand) {
-      whatToDoWhenPlayerStanded(1300);
-    }
-
-    if (playerPressedStand == false) {
-      dealCardToEnemy(1300);
-    }
-  }, []);
-
-  const gameOver = useCallback((whoWon: string = "") => {
-    setEnemyTurn(false);
-    setPlayerTurn(false);
-    // window.confirm(`Game over. Winner - ${whoWon}. Press OK to reload`) &&
-    //   document.location.reload();
-    alert(`Game over. Winner - ${whoWon}`);
-  }, []);
-
-  const clearState = useCallback(() => {
-    roundStartedDelay = false;
-    playerPressedStand = false;
-    enemyPressedStand = false;
-    playerShouldGetCard = true;
-    whoWonRound = "No one";
-
-    setEnemyCardsOnTable([]);
-    setEnemyHand([]);
-    setEnemyScore(0);
-    setEnemyTurn(false);
-    setPlayerCardsOnTable([]);
-    setPlayerHand([]);
-    setPlayerMove(false);
-    setPlayerScore(0);
-    setPlayerTurn(true);
-    setPlayerStanded(false);
-    setComputerStanded(false);
-  }, []);
-
-  const dealCardToPlayer = useCallback((timeout: number = 1300) => {
-    let number = Dealer.playCard();
-    setTimeout(() => {
-      setPlayerCardsOnTable((oldState) => [...oldState, number]);
-      setPlayerScore((prevScore) => prevScore + number);
-
-      setPlayerMove(false);
+    if (state.global.initNewRound) {
       setTimeout(() => {
-        setEvalPlayerStats((prev) => !prev);
-      }, 30);
-    }, timeout);
-  }, []);
+        dispatch({ type: ACTION.INIT_ROUND });
+      }, UI_UPDATE_TIMEOUT);
+      return;
+    }
+    dispatch({ type: ACTION.INIT_ROUND });
+  }, [state.global.initNewRound]);
 
-  const dealCardWhenComputerStanded = useCallback(() => {
-    let number = Dealer.playCard();
-    setTimeout(() => {
-      setPlayerCardsOnTable((oldState) => [...oldState, number]);
-      setPlayerScore((prevScore) => prevScore + number);
-      setEvalPlayerStats((prev) => !prev);
-    }, 1300);
-  }, []);
+  useEffect(() => {
+    if (state.global.passTurnToPlayer) {
+      setTimeout(() => {
+        dispatch({ type: ACTION.PLAYER_TURN });
+      }, UI_UPDATE_TIMEOUT);
+    }
+  }, [state.global.passTurnToPlayer]);
 
-  const whatToDoWhenPlayerStanded = useCallback((timeout: number = 1300) => {
-    let number = Dealer.playCard();
-    setTimeout(() => {
-      setEnemyCardsOnTable((oldState) => [...oldState, number]);
-      setEnemyScore((prevScore) => prevScore + number);
+  useEffect(() => {
+    if (state.ai.turn && !state.ai.standed) {
+      setTimeout(() => {
+        dispatch({ type: ACTION.AI_MOVE });
+      }, UI_UPDATE_TIMEOUT);
+    }
+  }, [state.global.toogleAIturn]);
 
-      setEvalEnemyStats((prev) => !prev);
-    }, timeout);
-  }, []);
+  useEffect(() => {
+    let decision = Dealer.eval(state.player, state.ai);
+    dispatch({ type: decision });
+    return;
+  }, [state.player.score, state.ai.score, state.player.standed, state.ai.standed]);
 
-  function dealCardToEnemy(timeout: number = 1300) {
-    setEnemyTurn(true);
-    let number = Dealer.playCard();
-    setTimeout(() => {
-      setEnemyCardsOnTable((oldState) => [...oldState, number]);
-      setEnemyScore((prevScore) => prevScore + number);
+  // ЗАмена старых юзеффектов на новый с применением диспатча
+  const userInputHandler = (e: SyntheticEvent) => {
+    if (!state.global.doNotExeptUserInput) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+  };
 
-      setEvalEnemyStats((prev) => !prev);
-    }, timeout);
-  }
-
-  function randomCardFromGlobalDeck() {
-    return globalDeck[Math.ceil(Math.random() * globalDeck.length - 1)];
-  }
   return (
-    <div className="Game" onClick={() => console.log("You clicked something")} ref={selfRef}>
+    <div className="Game" onClick={userInputHandler} ref={selfRef}>
       <div className="Table">
         <div className="PlayerSide">
-          <UpperTable playerScore={playerScore} playerTurn={playerTurn} playerRoundsWon={playerRoundsWon} playerCardsOnTable={playerCardsOnTable} />
-          <LowerTable playerHand={playerHand} />
-          {playerStaneded && <div className="Darkened">&nbsp;</div>}
+          <UpperTable
+            score={state.player.score}
+            turn={state.player.turn}
+            roundsWon={state.player.roundsWon}
+            cardsOnTable={state.player.cardsOnTable}
+          />
+          <LowerTable
+            playerHand={state.player.hand}
+            playCard={(rank: number, index: number) => {
+              dispatch({
+                type: ACTION.PLAY_CARD_FROM_HAND,
+                payload: {
+                  rank: rank,
+                  index: index,
+                },
+              });
+            }}
+          />
+          {state.player.standed && <div className="Darkened">&nbsp;</div>}
         </div>
         <div className="EnemySide">
-          <EnemyUpperTable enemyScore={enemyScore} enemyTurn={enemyTurn} enemyRoundsWon={enemyRoundsWon} enemyCardsOnTable={enemyCardsOnTable} computerStanded={computerStanded} />
+          <EnemyUpperTable
+            enemyScore={state.ai.score}
+            enemyTurn={state.ai.turn}
+            enemyRoundsWon={state.ai.roundsWon}
+            enemyCardsOnTable={state.ai.cardsOnTable}
+            computerStanded={state.ai.standed}
+          />
           <div className="EnemyLowerTable">
             <EnemyWhosHand />
             <EnemyDeck />
             <div className="PlayerButtons">
-              <button className="EndTurn" onClick={controlls.endTurnTrigger}>
-                END Turn
+              <button
+                className="EndTurn"
+                onClick={controlls.endTurnTrigger}
+                disabled={state.global.doNotExeptUserInput}
+              >
+                Закончить ход
               </button>
-              <button className="Stand" onClick={controlls.standTrigger}>
-                Stand
+              <button
+                className="Stand"
+                onClick={controlls.standTrigger}
+                disabled={state.global.doNotExeptUserInput}
+              >
+                Пас
               </button>
               <button className="Forfeit" onClick={controlls.forfeitGameTrigger}>
-                Forfeit Game
+                Сдаться
               </button>
             </div>
           </div>
         </div>
       </div>
+      {state.modal.isOpen && (
+        <Modal show={state.modal.isOpen} dispatch={dispatch} modalMessage={state.modal.message} />
+      )}
     </div>
   );
 }
