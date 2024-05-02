@@ -1,4 +1,9 @@
-import React, { CSSProperties, SyntheticEvent, useContext, useState } from "react";
+import React, {
+  CSSProperties,
+  SyntheticEvent,
+  useContext,
+  useState,
+} from "react";
 import { Link, useHistory } from "react-router-dom";
 import "./Home.css";
 import about from "../../assets/img/about.png";
@@ -118,14 +123,19 @@ const Buttons = () => {
   }
   return (
     <>
-      <Link to="/againstAI">
+      <Link to="/pve">
         <button className="button" onMouseEnter={hoverEffect}>
           Player vs AI
         </button>
       </Link>
-      <Link to="/againstPlayer">
+      <Link to="/pvp">
         <button className="button" onMouseEnter={hoverEffect}>
           Player vs Player
+        </button>
+      </Link>
+      <Link to="/mp">
+        <button className="button" onMouseEnter={hoverEffect}>
+          Music Player
         </button>
       </Link>
     </>

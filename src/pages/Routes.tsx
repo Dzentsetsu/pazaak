@@ -17,12 +17,18 @@ const Routes = () => {
 
   return (
     <Switch>
-      {/* <PrivateRoute path="/" publicComponent={Home} privateComponent={Game} /> */}
       <Route exact path="/" component={Home} />
-      <Route exact path="/againstAI" component={Game} />
+      <Route exact path="/pve" component={Game} />
       <Route exact path="/mp" component={Wrapper} />
-      <Route exact path="/againstPlayer" component={() => <h1 style={NotFoundStyle}>NOT IMPLEMENTED YET</h1>} />
-      <Route path="*" component={() => <h1 style={NotFoundStyle}>404 NOT FOUND</h1>} />
+      <Route
+        exact
+        path="/pvp"
+        component={() => <h1 style={NotFoundStyle}>NOT IMPLEMENTED YET</h1>}
+      />
+      <Route
+        path="*"
+        component={() => <h1 style={NotFoundStyle}>404 NOT FOUND</h1>}
+      />
     </Switch>
   );
 };

@@ -16,7 +16,11 @@ export default function Wrapper() {
 
   return (
     <div className="Wrapper" ref={ref}>
-      {clicked ? <MusicPlayer /> : <div>Click anywhere to launch MusicPlayer</div>}
+      {clicked ? (
+        <MusicPlayer />
+      ) : (
+        <div>Click anywhere to launch MusicPlayer</div>
+      )}
     </div>
   );
 }
